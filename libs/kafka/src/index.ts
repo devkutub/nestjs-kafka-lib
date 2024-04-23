@@ -1,2 +1,3 @@
 export * from './kafka.module';
-export * from './kafka.service';
+export * from './producer.service';
+export * from './consumer.service';
