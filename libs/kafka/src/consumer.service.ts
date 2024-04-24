@@ -1,13 +1,18 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationShutdown,
+  //   OnModuleInit,
+} from '@nestjs/common';
 import {
   Consumer,
   ConsumerRunConfig,
-  ConsumerSubscribeTopic,
+  //   ConsumerSubscribeTopic,
+  ConsumerSubscribeTopics,
   Kafka,
 } from 'kafkajs';
 
 @Injectable()
-export class ConsumerService {
+export class ConsumerService implements OnApplicationShutdown {
   // connect to kafka server
   private readonly kafka = new Kafka({
     brokers: ['localhost:9092'],
@@ -15,8 +20,31 @@ export class ConsumerService {
 
   private readonly consumer: Consumer[] = [];
 
-  async consume(topic: ConsumerSubscribeTopic, config: ConsumerRunConfig) {
-    const consumer = this.kafka.consumer({ groupId: 'nestjs-kafka-consumer' });
+  //   async onModuleInit() {
+  //     const consumer = this.kafka.consumer({ groupId: 'test-group' });
+  //     // const consumer = this.kafka.consumer({ groupId: 'nestjs-kafka-consumer' });
+  //     await consumer.connect();
+  //     await consumer.subscribe({ topic: 'election' });
+  //     await consumer.run({
+  //       eachMessage: async ({ topic, partition, message }) => {
+  //         const messageObj = {
+  //           value: message.value.toString(),
+  //           topic: topic.toString(),
+  //           partition: partition.toString(),
+  //         };
+  //         console.log(messageObj);
+  //         // messages.push(messageObj);
+  //       },
+  //     });
+  //   }
+
+  async consume(
+    topic: ConsumerSubscribeTopics,
+    groupId: string,
+    config: ConsumerRunConfig,
+  ) {
+    const consumer = this.kafka.consumer({ groupId });
+    // const consumer = this.kafka.consumer({ groupId: 'nestjs-kafka-consumer' });
     await consumer.connect();
     await consumer.subscribe(topic);
     await consumer.run(config);

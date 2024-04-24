@@ -1,8 +1,12 @@
-import { Injectable } from '@nestjs/common';
+import {
+  Injectable,
+  OnApplicationShutdown,
+  OnModuleInit,
+} from '@nestjs/common';
 import { Kafka, ProducerRecord } from 'kafkajs';
 
 @Injectable()
-export class ProducerService {
+export class ProducerService implements OnModuleInit, OnApplicationShutdown {
   // connect to kafka server
   private readonly kafka = new Kafka({
     brokers: ['localhost:9092'],
@@ -15,7 +19,7 @@ export class ProducerService {
   }
 
   async produce(record: ProducerRecord) {
-    await this.producer.send(record);
+    return await this.producer.send(record);
   }
 
   async onApplicationShutdown() {
