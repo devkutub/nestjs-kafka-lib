@@ -3,6 +3,7 @@ import {
   OnApplicationShutdown,
   //   OnModuleInit,
 } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
 import {
   Consumer,
   ConsumerRunConfig,
@@ -13,9 +14,11 @@ import {
 
 @Injectable()
 export class ConsumerService implements OnApplicationShutdown {
+  constructor(private configService: ConfigService) {}
+
   // connect to kafka server
   private readonly kafka = new Kafka({
-    brokers: ['localhost:9092'],
+    brokers: [this.configService.get<string>('KAFKA_BROKER')],
   });
 
   private readonly consumer: Consumer[] = [];
