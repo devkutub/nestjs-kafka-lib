@@ -19,6 +19,7 @@ export class ConsumerService implements OnApplicationShutdown {
   // connect to kafka server
   private readonly kafka = new Kafka({
     brokers: [this.configService.get<string>('KAFKA_BROKER')],
+    clientId: this.configService.get<string>('KAFKA_CLIENT_ID'),
   });
 
   private readonly consumer: Consumer[] = [];
