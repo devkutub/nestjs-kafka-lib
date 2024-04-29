@@ -1,63 +1,29 @@
-import {
-  Injectable,
-  OnApplicationShutdown,
-  //   OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import {
-  Consumer,
-  ConsumerRunConfig,
-  //   ConsumerSubscribeTopic,
-  ConsumerSubscribeTopics,
-  Kafka,
-} from 'kafkajs';
+import { IConsumer } from './interface/consumer.interface';
+import { KafkajsConsumerOptions } from './kafkajs-consumer-options.interface';
+import { KafkajsConsumer } from './kafkajs.consumer';
 
 @Injectable()
 export class ConsumerService implements OnApplicationShutdown {
   constructor(private configService: ConfigService) {}
 
-  // connect to kafka server
-  private readonly kafka = new Kafka({
-    brokers: [this.configService.get<string>('KAFKA_BROKER')],
-    clientId: this.configService.get<string>('KAFKA_CLIENT_ID'),
-  });
+  private readonly consumers: IConsumer[] = [];
 
-  private readonly consumer: Consumer[] = [];
-
-  //   async onModuleInit() {
-  //     const consumer = this.kafka.consumer({ groupId: 'test-group' });
-  //     // const consumer = this.kafka.consumer({ groupId: 'nestjs-kafka-consumer' });
-  //     await consumer.connect();
-  //     await consumer.subscribe({ topic: 'election' });
-  //     await consumer.run({
-  //       eachMessage: async ({ topic, partition, message }) => {
-  //         const messageObj = {
-  //           value: message.value.toString(),
-  //           topic: topic.toString(),
-  //           partition: partition.toString(),
-  //         };
-  //         console.log(messageObj);
-  //         // messages.push(messageObj);
-  //       },
-  //     });
-  //   }
-
-  async consume(
-    topic: ConsumerSubscribeTopics,
-    groupId: string,
-    config: ConsumerRunConfig,
-  ) {
-    const consumer = this.kafka.consumer({ groupId });
-    // const consumer = this.kafka.consumer({ groupId: 'nestjs-kafka-consumer' });
+  async consume({ topic, config, onMessage }: KafkajsConsumerOptions) {
+    const consumer = new KafkajsConsumer(
+      topic,
+      config,
+      this.configService.get<string>('KAFKA_BROKER'),
+      this.configService.get<string>('KAFKA_CLIENT_ID'),
+    );
     await consumer.connect();
-    await consumer.subscribe(topic);
-    await consumer.run(config);
-
-    this.consumer.push(consumer);
+    await consumer.consume(onMessage);
+    this.consumers.push(consumer);
   }
 
   async onApplicationShutdown() {
-    for (const consumer of this.consumer) {
+    for (const consumer of this.consumers) {
       await consumer.disconnect();
     }
   }

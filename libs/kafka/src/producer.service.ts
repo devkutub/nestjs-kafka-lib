@@ -1,32 +1,38 @@
-import {
-  Injectable,
-  OnApplicationShutdown,
-  OnModuleInit,
-} from '@nestjs/common';
+import { Injectable, OnApplicationShutdown } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { Kafka, ProducerRecord } from 'kafkajs';
+import { IProducer } from './interface/producer.interface';
+import { KafkajsProducer } from './kafkajs.producer';
+import { Message } from 'kafkajs';
 
 @Injectable()
-export class ProducerService implements OnModuleInit, OnApplicationShutdown {
+export class ProducerService implements OnApplicationShutdown {
+  private readonly producers = new Map<string, IProducer>();
+
   constructor(private configService: ConfigService) {}
 
-  // connect to kafka server
-  private readonly kafka = new Kafka({
-    brokers: [this.configService.get<string>('KAFKA_BROKER')],
-    clientId: 'example-producer',
-  });
-
-  private readonly producer = this.kafka.producer();
-
-  async onModuleInit() {
-    await this.producer.connect();
+  async produce(topic: string, message: Message) {
+    const producer = await this.getProducer(topic);
+    await producer.produce(message);
   }
 
-  async produce(record: ProducerRecord) {
-    return await this.producer.send(record);
+  async getProducer(topic: string) {
+    let producer = this.producers.get(topic);
+    if (!producer) {
+      producer = new KafkajsProducer(
+        topic,
+        this.configService.get<string>('KAFKA_BROKER'),
+        this.configService.get<string>('KAFKA_CLIENT_ID'),
+      );
+      await producer.connect();
+      this.producers.set(topic, producer);
+    }
+
+    return producer;
   }
 
   async onApplicationShutdown() {
-    await this.producer.disconnect();
+    for (const producer of this.producers.values()) {
+      await producer.disconnect();
+    }
   }
 }
